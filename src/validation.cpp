@@ -1864,7 +1864,7 @@ static DisconnectResult DisconnectBlock(const CBlock& block, CValidationState& s
     // Result of the smartrewards block processing.
     CSmartRewardsUpdateResult smartRewardsResult(pindex->nHeight, pindex->phashBlock, pindex->nTime);
 
-    prewards->StartBlock();
+//    prewards->StartBlock();
 
     // undo transactions in reverse order
     for (int i = block.vtx.size() - 1; i >= 0; i--) {
@@ -2068,7 +2068,7 @@ static DisconnectResult DisconnectBlock(const CBlock& block, CValidationState& s
             // At this point, all of txundo.vprevout should have been moved out.
         }
 
-        prewards->UndoTransaction((CBlockIndex*) pindex, tx, view, params, smartRewardsResult);
+//        prewards->UndoTransaction((CBlockIndex*) pindex, tx, view, params, smartRewardsResult);
     }
 
 
@@ -2094,10 +2094,10 @@ static DisconnectResult DisconnectBlock(const CBlock& block, CValidationState& s
         }
     }
 
-    if( !prewards->CommitUndoBlock( (CBlockIndex*) pindex, smartRewardsResult) ){
-        AbortNode(state, "Failed to commit smartrewards block undo");
-        return DISCONNECT_FAILED;
-    }
+//    if( !prewards->CommitUndoBlock( (CBlockIndex*) pindex, smartRewardsResult) ){
+//        AbortNode(state, "Failed to commit smartrewards block undo");
+//        return DISCONNECT_FAILED;
+//    }
 
     /* WIP-VOTING uncomment
     if( mapVoteKeys.size() && !pblocktree->EraseVoteKeys(mapVoteKeys) ){
@@ -2365,7 +2365,7 @@ static bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockInd
 
     //bool fDIP0001Active_context = (VersionBitsState(pindex->pprev, chainparams.GetConsensus(), Consensus::DEPLOYMENT_DIP0001, versionbitscache) == THRESHOLD_ACTIVE);
 
-    prewards->StartBlock();
+//    prewards->StartBlock();
 
     for (unsigned int i = 0; i < block.vtx.size(); i++)
     {
@@ -2374,7 +2374,7 @@ static bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockInd
         std::map<std::pair<uint160, int>, CAmount> vecInputs;
         std::map<std::pair<uint160, int>, CAmount> vecOutputs;
 
-        if( pindex->nHeight > 0 ) prewards->ProcessTransaction(pindex, tx, view, chainparams, smartRewardsResult);
+//        if( pindex->nHeight > 0 ) prewards->ProcessTransaction(pindex, tx, view, chainparams, smartRewardsResult);
 
         nInputs += tx.vin.size();
         nSigOps += GetLegacySigOpCount(tx);
@@ -2624,7 +2624,7 @@ static bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockInd
         return false;
     }
 
-    prewards->CommitBlock(pindex, smartRewardsResult);
+//    prewards->CommitBlock(pindex, smartRewardsResult);
 
     // END SMARTCASH
 

@@ -325,19 +325,19 @@ bool SmartMining::Validate(const CBlock &block, CBlockIndex *pindex, CValidation
                                 REJECT_INVALID, "bad-cb-payee");
     }
 
-    if( SmartRewardPayments::Validate(block,pindex->nHeight, smartReward) != SmartRewardPayments::Valid ){
-         LogPrintf("SmartMining::Validate - Invalid smartreward payment %s\n", block.vtx[0].ToString());
-        return state.DoS(100, false, REJECT_INVALID_SMARTREWARD_PAYMENTS,
-                     "CTransaction::CheckTransaction() : SmartReward payment list is invalid");
-    }
+//    if( SmartRewardPayments::Validate(block,pindex->nHeight, smartReward) != SmartRewardPayments::Valid ){
+//         LogPrintf("SmartMining::Validate - Invalid smartreward payment %s\n", block.vtx[0].ToString());
+//        return state.DoS(100, false, REJECT_INVALID_SMARTREWARD_PAYMENTS,
+//                     "CTransaction::CheckTransaction() : SmartReward payment list is invalid");
+//    }
 
-    CAmount expectedCoinbase = nFees + nodeReward + hiveReward + smartReward + miningReward;
+//    CAmount expectedCoinbase = nFees + nodeReward + hiveReward + smartReward + miningReward;
 
-    if( pindex->nHeight > 1 && coinbase > expectedCoinbase ){
-         LogPrintf("SmartMining::Validate - Coinbase too high Expected: %d.%08d! %s\n", expectedCoinbase / COIN, expectedCoinbase % COIN, block.vtx[0].ToString());
-        return state.DoS(100, false, REJECT_INVALID,
-                     "CTransaction::CheckTransaction() : Coinbase value too high");
-    }
+//    if( pindex->nHeight > 1 && coinbase > expectedCoinbase ){
+//         LogPrintf("SmartMining::Validate - Coinbase too high Expected: %d.%08d! %s\n", expectedCoinbase / COIN, expectedCoinbase % COIN, block.vtx[0].ToString());
+//        return state.DoS(100, false, REJECT_INVALID,
+//                     "CTransaction::CheckTransaction() : Coinbase value too high");
+//    }
 
     return true;
 }
