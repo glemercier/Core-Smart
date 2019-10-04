@@ -3973,6 +3973,8 @@ static bool AcceptBlock(const CBlock& block, CValidationState& state, const CCha
         newHash = true;
     }
 
+    LogPrint("newhash-debug", "AcceptBlock newHash %b - height: %d, hash: %s\n", newHash, pindex->nHeight, pindex->GetBlockHeader().GetHash().ToString());
+
     // Write block to history file
     try {
         unsigned int nBlockSize = ::GetSerializeSize(block, SER_DISK, CLIENT_VERSION);
@@ -4389,6 +4391,8 @@ bool CVerifyDB::VerifyDB(const CChainParams& chainparams, CCoinsView *coinsview,
         if(!newHash && ((nHeight > HF_V1_3_SMARTREWARD_WITHOUT_NODE_HEIGHT && Params().NetworkIDString() == CBaseChainParams::MAIN) || (nHeight > HF_V1_3_SMARTREWARD_WITHOUT_NODE_HEIGHT_TESTNET && Params().NetworkIDString() == CBaseChainParams::TESTNET))){
             newHash = true;
         }
+
+        LogPrint("newhash-debug", "VerifyDB newHash %b - height: %d, hash: %s\n", newHash, pindex->nHeight, pindex->GetBlockHeader().GetHash().ToString());
 
         if (pindex->nHeight < chainActive.Height()-nCheckDepth)
             break;
