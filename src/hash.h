@@ -19,7 +19,8 @@
 #include <vector>
 
 typedef uint256 ChainCode;
-static bool newHash = false;
+
+extern bool newHash;
 
 /** A hasher class for Bitcoin's 256-bit hash (double SHA-256). */
 class CHash256 {
