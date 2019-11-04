@@ -21,11 +21,9 @@ static const int64_t nRewardPayoutBlockInterval = 2;
 static const int64_t nRewardPayoutsPerBlock = 1000;
 
 //! Testnet parameter
-static const int64_t nRewardPayoutStartDelay_Testnet = 100;
-static const int64_t nRewardPayoutsPerBlock_1_Testnet = 500;
-static const int64_t nRewardPayoutBlockInterval_1_Testnet = 5;
-static const int64_t nRewardPayoutsPerBlock_2_Testnet = 1000;
-static const int64_t nRewardPayoutBlockInterval_2_Testnet = 2;
+static const int64_t nRewardPayoutStartDelay_Testnet = 20;
+static const int64_t nRewardPayoutsPerBlock_Testnet = 500;
+static const int64_t nRewardPayoutBlockInterval_Testnet = 2;
 
 namespace SmartRewardPayments{
 

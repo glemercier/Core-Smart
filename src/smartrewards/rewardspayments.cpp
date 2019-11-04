@@ -57,13 +57,8 @@ CSmartRewardSnapshotList SmartRewardPayments::GetPaymentsForBlock(const int nHei
         int nPayoutInterval = nRewardPayoutBlockInterval;
 
         if( TestNet() ){
-            if( round.number < 68 ){
-                nPayoutsPerBlock = nRewardPayoutsPerBlock_1_Testnet;
-                nPayoutInterval = nRewardPayoutBlockInterval_1_Testnet;
-            }else{
-                nPayoutsPerBlock = nRewardPayoutsPerBlock_2_Testnet;
-                nPayoutInterval = nRewardPayoutBlockInterval_2_Testnet;
-            }
+            nPayoutsPerBlock = nRewardPayoutsPerBlock_Testnet;
+            nPayoutInterval = nRewardPayoutBlockInterval_Testnet;
         }
 
         // If we have no eligible addresses. Just to make sure...wont happen.

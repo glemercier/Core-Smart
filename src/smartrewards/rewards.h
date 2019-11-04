@@ -33,9 +33,9 @@ const int64_t nFirstRoundStartBlock = 1;
 const int64_t nFirstRoundEndBlock = 60001;
 
 // Timestamps of the first round's start and end on testnet
-const int64_t nRewardsConfirmations_Testnet = 50;
+const int64_t nRewardsConfirmations_Testnet = 10;
 const int64_t nRewardsSyncDistance_Testnet = nRewardsConfirmations_Testnet + 10;
-const int64_t nRewardsBlocksPerRound_Testnet = 1000;
+const int64_t nRewardsBlocksPerRound_Testnet = 500;
 const int64_t nFirstTxTimestamp_Testnet = 1527192589;
 const int64_t nFirstRoundStartTime_Testnet = nFirstTxTimestamp_Testnet;
 const int64_t nFirstRoundEndTime_Testnet = nFirstRoundStartTime_Testnet + (2*60*60);
