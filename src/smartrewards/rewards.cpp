@@ -229,6 +229,15 @@ void CSmartRewards::EvaluateRound(CSmartRewardRound &next)
 
         if( entry->second->balance >= nMinBalance && !SmartHive::IsHive(entry->second->id) ){
             entry->second->balanceEligible = entry->second->balance;
+/* CalculateWeightedBalance.
+           entry->second->weightedBalance = entry->second->balance;
+           if( entry->second->balance >= cache.GetRounds()->at(pRound->number - 32)->entry->second->balance ){
+               entry->second->weightedBalance += 2*cache.GetRounds()->at(pRound->number - 32)->entry->second->balance;}
+           if( entry->second->balance >= cache.GetRounds()->at(pRound->number - 16)->entry->second->balance ){
+               entry->second->weightedBalance += 2*cache.GetRounds()->at(pRound->number - 16)->entry->second->balance;}
+           if( entry->second->balance >= cache.GetRounds()->at(pRound->number - 8)->entry->second->balance ){
+               entry->second->weightedBalance += cache.GetRounds()->at(pRound->number - 8)->entry->second->balance;}
+*/
         }else{
             entry->second->balanceEligible = 0;
         }
@@ -240,8 +249,9 @@ void CSmartRewards::EvaluateRound(CSmartRewardRound &next)
         entry->second->smartnodePaymentTx.SetNull();
         entry->second->fSmartnodePaymentTx = false;
         // Reset the vote proof tx with every cycle to force a new vote for eligibility
-        entry->second->voteProof.SetNull();
-        entry->second->fVoteProven = false;
+//Need to disable.
+//        entry->second->voteProof.SetNull();
+//        entry->second->fVoteProven = false;
 
         if( next.number < nFirst_1_3_Round && entry->second->balanceEligible ){
             ++next.eligibleEntries;
