@@ -18,9 +18,6 @@
 #include <boost/range/irange.hpp>
 #include <boost/thread.hpp>
 
-#include <fstream>
-#include <iostream>
-
 #define REWARDS_MAX_CACHE 400000000UL // 400MB
 
 CSmartRewards* prewards = NULL;
@@ -157,7 +154,6 @@ void CSmartRewards::UpdatePercentage()
     const CSmartRewardRound* currentRound = cache.GetCurrentRound();
 
     double nPercent = 0.0;
-
     if ((currentRound->eligibleSmart - currentRound->disqualifiedSmart) > 0) {
         nPercent = double(currentRound->rewards) / (currentRound->eligibleSmart - currentRound->disqualifiedSmart);
     }
@@ -180,8 +176,9 @@ CAmount CSmartRewards::GetAddressBalanceAtRound(const CSmartAddress& address, in
     if (addressResult == roundResults.end()) {
         return 0;
     }
-    if (addressResult->entry.balance < 0)
+    if (addressResult->entry.balance < 0){
         addressResult->entry.balance = 0;
+    }
     return addressResult->entry.balance;
 }
 
@@ -192,16 +189,16 @@ bool CSmartRewards::Is_1_3(uint16_t currentRoundNumber)
 
 CAmount CSmartRewards::CalculateWeightedBalance(CSmartAddress address, CSmartRewardEntry* smartRewardEntry, uint16_t currentRoundNumber)
 {
-    int nFirst_1_3_Round = Params().GetConsensus().nRewardsFirst_1_3_Round;
+//    int nFirst_1_3_Round = Params().GetConsensus().nRewardsFirst_1_3_Round;
     smartRewardEntry->balanceEligible = smartRewardEntry->balance;
     // Balance 2 months ago
-    if (currentRoundNumber > (nFirst_1_3_Round + 8) && GetAddressBalanceAtRound(address, currentRoundNumber - 1) > 9999 * COIN) {
+    if (Is_1_3(currentRoundNumber + 8) && GetAddressBalanceAtRound(address, currentRoundNumber - 1) > 0) {
         smartRewardEntry->balanceEligible += GetAddressBalanceAtRound(address, currentRoundNumber - 8);
         // Balance 4 months ago
-        if (currentRoundNumber > (nFirst_1_3_Round + 16)) {
+        if ( Is_1_3(currentRoundNumber + 16)) {
             smartRewardEntry->balanceEligible += 2 * GetAddressBalanceAtRound(address, currentRoundNumber - 16);
             // Balance 6 months ago
-            if (currentRoundNumber > (nFirst_1_3_Round + 26)) {
+            if (Is_1_3(currentRoundNumber + 26)) {
                 smartRewardEntry->balanceEligible += 2 * GetAddressBalanceAtRound(address, currentRoundNumber - 26);
             }
         }
@@ -518,6 +515,17 @@ void CSmartRewards::ProcessInput(const CTransaction& tx, const CTxOut& in, CSmar
         LogPrint("smartrewards-tx", "CSmartRewards::ProcessInput - Spend without previous receive - %s", tx.ToString());
         return;
     }
+    if (Is_1_3(nCurrentRound) && tx.IsVoteProof()) {
+        rEntry->balance += in.nValue;
+    }
+        rEntry->balance -= in.nValue;
+
+    if( Is_1_3(nCurrentRound) && !tx.IsVoteProof() && !rEntry->fDisqualifyingTx ){
+
+        if( rEntry->IsEligible() ){
+            result.disqualifiedEntries++;
+            result.disqualifiedSmart += rEntry->balanceEligible;
+        }
 
     if (!tx.IsVoteProof()) {
         DisqualifyEntries(rEntry, result, nCurrentRound, in.nValue);
@@ -736,7 +744,7 @@ void CSmartRewards::UndoTransaction(CBlockIndex* pIndex, const CTransaction& tx,
             return;
         }
 
-        nVoteProofIn = rOut.nValue;
+        nVoteProofIn = 0; // rOut.nValue;
         voteProofCheck = new CSmartAddress(id);
     }
 
@@ -970,7 +978,7 @@ bool CSmartRewards::CommitBlock(CBlockIndex* pIndex, CSmartRewardsUpdateResult& 
     return true;
 }
 
-bool CSmartRewards::CommitUndoBlock(CBlockIndex* pIndex, CSmartRewardsUpdateResult& result)
+bool CSmartRewards::CommitUndoBlock(CBlockIndex* pIndex, const CSmartRewardsUpdateResult& result)
 {
     int nTime1 = GetTimeMicros();
 
@@ -1185,11 +1193,11 @@ void CSmartRewardsCache::ApplyRoundUpdateResult(const CSmartRewardsUpdateResult&
     if (result.IsValid()) {
         SetCurrentBlock(result.block);
 
-        round.disqualifiedEntries = result.disqualifiedEntries;
-        round.disqualifiedSmart = result.disqualifiedSmart;
+        round.disqualifiedEntries += result.disqualifiedEntries;
+        round.disqualifiedSmart += result.disqualifiedSmart;
 
-        round.eligibleEntries = result.qualifiedEntries;
-        round.eligibleSmart = result.qualifiedSmart;
+        round.eligibleEntries += result.qualifiedEntries;
+        round.eligibleSmart += result.qualifiedSmart;
     }
 }
 
