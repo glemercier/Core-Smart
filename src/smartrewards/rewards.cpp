@@ -671,11 +671,13 @@ void CSmartRewards::UndoOutput(const CTransaction& tx, const CTxOut& out, CSmart
         rEntry->voteProof.SetNull();
         rEntry->fVoteProven = false;
     } else if (Is_1_3(nCurrentRound) && tx.IsCoinBase() && IsNode(out, nHeight) && (rEntry->fSmartnodePaymentTx)) {
-        //
+        //Remove it from node disqualification
         rEntry->smartnodePaymentTx.SetNull();
         rEntry->fSmartnodePaymentTx = false;
         //disqualify nodes
+        //IF NODE we need to give back the balance that was taken on Process output
         rEntry->balance += out.nValue;
+        //Remove this entry from disqualified
         result.disqualifiedEntries--;
         result.disqualifiedSmart -= out.nValue;
     } else {
