@@ -387,9 +387,59 @@ string CSmartRewardEntry::ToString() const
     return s.str();
 }
 
+void CSmartRewardEntry::SetIsVoteProven(const uint256& txHash)
+{
+    voteProof = txHash;
+    fVoteProven = true;
+}
+
+void CSmartRewardEntry::SetIsNode(const uint256& txHash)
+{
+    smartnodePaymentTx = txHash;
+    fSmartnodePaymentTx = true;
+}
+
+void CSmartRewardEntry::SetDisqualifyingTx(const uint256& txHash)
+{
+    disqualifyingTx = txHash;
+    fDisqualifyingTx = true;
+}
+
+void CSmartRewardEntry::ResetIsVoteProven()
+{
+    voteProof.SetNull();
+    fVoteProven = false;
+}
+void CSmartRewardEntry::ResetIsNode()
+{
+    smartnodePaymentTx.SetNull();
+    fSmartnodePaymentTx = false;
+}
+void CSmartRewardEntry::ResetDisqualifyingTx()
+{
+    fDisqualifyingTx = false;
+    disqualifyingTx.SetNull();
+}
+
+void CSmartRewardEntry::ResetEntryFlags()
+{
+    ResetIsVoteProven();
+    ResetIsNode();
+    ResetDisqualifyingTx();
+}
+
 bool CSmartRewardEntry::IsEligible()
 {
     return fVoteProven && !fSmartnodePaymentTx && balanceEligible > 0 && !fDisqualifyingTx;
+}
+
+bool CSmartRewardEntry::IsEligible_1_2() const
+{
+    return (!fDisqualifyingTx && balance > 0 && balance >= SMART_REWARDS_MIN_BALANCE_1_2);
+}
+bool CSmartRewardEntry::IsEligible_1_3() const
+{
+    return (fVoteProven && !fSmartnodePaymentTx && !fDisqualifyingTx && balance > 0 && balance >= SMART_REWARDS_MIN_BALANCE_1_3);
 }
 
 string CSmartRewardBlock::ToString() const

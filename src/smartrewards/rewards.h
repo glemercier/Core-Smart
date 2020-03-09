@@ -205,10 +205,18 @@ public:
     CSmartRewardsRoundResult* GetEligiblesEntries2(const CSmartRewardsRoundResult* pResult);
 
     void CalculateBalanceForAllEntries(CSmartRewardEntryMap& smartRewardEntriesFromDB, uint16_t currentRoundNumber);
-    
+
     void ResetFlagsForAllEntries(CSmartRewardEntryMap& smartRewardEntriesFromDB);
 
     bool IsNode(const CTxOut& out, int nHeight);
+
+    void QualifyEntries(CSmartRewardEntry* rEntry, CSmartRewardsUpdateResult& result, uint16_t nCurrentRound, const CTxOut& out);
+
+    void UndoQualifyEntries(CSmartRewardEntry* rEntry, CSmartRewardsUpdateResult& result, uint16_t nCurrentRound, const CTxOut& out);
+
+    void DisqualifyEntries(CSmartRewardEntry* rEntry, CSmartRewardsUpdateResult& result, uint16_t nCurrentRound, CAmount amount);
+
+    void UndoDisqualifyEntries(CSmartRewardEntry* rEntry, CSmartRewardsUpdateResult& result, uint16_t nCurrentRound, CAmount amount);
 };
 
 /** Global variable that points to the active rewards object (protected by cs_main) */

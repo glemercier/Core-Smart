@@ -215,11 +215,7 @@ CAmount CSmartRewards::CalculateWeightedBalance(CSmartAddress address, CSmartRew
 void CSmartRewards::ResetFlagsForAllEntries(CSmartRewardEntryMap& smartRewardEntriesFromDB)
 {
     for (auto itDb = cache.GetEntries()->begin(); itDb != cache.GetEntries()->end(); ++itDb) {
-        itDb->second->fDisqualifyingTx = false;
-        itDb->second->disqualifyingTx.SetNull();
-
-        itDb->second->fSmartnodePaymentTx = false;
-        itDb->second->smartnodePaymentTx.SetNull();
+        itDb->second->ResetEntryFlags();
     }
 }
 
@@ -246,7 +242,7 @@ void CSmartRewards::EvaluateRound(CSmartRewardRound& nextRewardRound)
 
     int nFirst_1_3_Round = Params().GetConsensus().nRewardsFirst_1_3_Round;
 
-    CAmount nMinBalance = nextRewardRound.number < nFirst_1_3_Round ? SMART_REWARDS_MIN_BALANCE_1_2 : SMART_REWARDS_MIN_BALANCE_1_3;
+    CAmount nMinBalance = !nextRewardRound.Is_1_3() ? SMART_REWARDS_MIN_BALANCE_1_2 : SMART_REWARDS_MIN_BALANCE_1_3;
 
     CSmartRewardsRoundResult* pCurrentSmartRewardResult = new CSmartRewardsRoundResult();
     pCurrentSmartRewardResult->round = *currentRound;
@@ -266,6 +262,9 @@ void CSmartRewards::EvaluateRound(CSmartRewardRound& nextRewardRound)
         }
     }
 
+    //Update the percentage of the reward
+    UpdatePercentage();
+
     for (auto itDb = cache.GetEntries()->begin(); itDb != cache.GetEntries()->end(); ++itDb) {
         //Calculate the eligible balance
         if (Is_1_3(currentRound->number)) {
@@ -273,8 +272,7 @@ void CSmartRewards::EvaluateRound(CSmartRewardRound& nextRewardRound)
         } else {
             itDb->second->balanceEligible = itDb->second->balance;
         }
-        //Update the percentage of the reward
-        UpdatePercentage();
+
         //Calculate the reward
         nReward = itDb->second->balanceEligible > 0 && !itDb->second->fDisqualifyingTx ? CAmount(itDb->second->balanceEligible * currentRound->percent) : 0;
         if (nReward > 0) {
@@ -282,11 +280,7 @@ void CSmartRewards::EvaluateRound(CSmartRewardRound& nextRewardRound)
             pCurrentSmartRewardResult->payouts.push_back(pCurrentSmartRewardResult->results.back());
         }
         //Reset flags
-        itDb->second->fDisqualifyingTx = false;
-        itDb->second->disqualifyingTx.SetNull();
-
-        itDb->second->fSmartnodePaymentTx = false;
-        itDb->second->smartnodePaymentTx.SetNull();
+        itDb->second->ResetEntryFlags();
     }
 
     if (pCurrentSmartRewardResult->payouts.size()) {
@@ -527,13 +521,8 @@ void CSmartRewards::ProcessInput(const CTransaction& tx, const CTxOut& in, CSmar
     }
 
     if (!tx.IsVoteProof()) {
-        rEntry->balance -= in.nValue;
-
-        result.disqualifiedEntries++;
-        result.disqualifiedSmart += in.nValue;
-
-        rEntry->disqualifyingTx = tx.GetHash();
-        rEntry->fDisqualifyingTx = true;
+        DisqualifyEntries(rEntry, result, nCurrentRound, in.nValue);
+        rEntry->SetDisqualifyingTx(tx.GetHash());
     }
 
     if (rEntry->balance < 0) {
@@ -561,30 +550,64 @@ void CSmartRewards::ProcessOutput(const CTransaction& tx, const CTxOut& out, CSm
     if (!ExtractDestination(out.scriptPubKey, id)) {
         LogPrint("smartrewards-tx", "CSmartRewards::ProcessOutput - Could't parse CSmartAddress: %s\n", out.ToString());
         return;
-    } else {
-        if (GetRewardEntry(id, rEntry, true)) {
-            //We only add balance if is not the vote proof transaction. Vote proof transaction is just to activate the address
-            if (tx.IsVoteProof()) {
-                rEntry->balance += out.nValue;
-                result.qualifiedEntries++;
-                result.qualifiedSmart += out.nValue;
-
-                rEntry->voteProof = tx.GetHash();
-                rEntry->fVoteProven = true;
-            } else if (Is_1_3(nCurrentRound) && tx.IsCoinBase() && IsNode(out, nHeight) && (!rEntry->fSmartnodePaymentTx)) {
-                //
-                rEntry->smartnodePaymentTx = tx.GetHash();
-                rEntry->fSmartnodePaymentTx = true;
-                //disqualify nodes
-                rEntry->balance -= out.nValue;
-                result.disqualifiedEntries++;
-                result.disqualifiedSmart += out.nValue;
-            } else {
-                rEntry->balance += out.nValue;
-                result.qualifiedEntries++;
-                result.qualifiedSmart += out.nValue;
-            }
+    }
+    if (GetRewardEntry(id, rEntry, true)) {
+        //We only add balance if is not the vote proof transaction. Vote proof transaction is just to activate the address
+        if (tx.IsVoteProof()) {
+            QualifyEntries(rEntry, result, nCurrentRound, out);
+            rEntry->SetIsVoteProven(tx.GetHash());
+            //If it is 1.3 and it is a NODE, then it should be disqualified
+        } else if (Is_1_3(nCurrentRound) && tx.IsCoinBase() && IsNode(out, nHeight) && (!rEntry->fSmartnodePaymentTx)) {
+            //We must set that it is a Node's payment
+            rEntry->SetIsNode(tx.GetHash());
+            //We must disqualify any balance of nodes
+            DisqualifyEntries(rEntry, result, nCurrentRound, out.nValue);
+        } else {
+            //If not a vote proof transaction and not a node we must set this as a valid entry for rewards. The balance must be eligible and follow the rules.
+            QualifyEntries(rEntry, result, nCurrentRound, out);
         }
+    }
+}
+
+void CSmartRewards::UndoDisqualifyEntries(CSmartRewardEntry* rEntry, CSmartRewardsUpdateResult& result, uint16_t nCurrentRound, CAmount amount)
+{
+    rEntry->balance += amount;
+    result.disqualifiedEntries--;
+    result.disqualifiedSmart -= amount;
+}
+void CSmartRewards::DisqualifyEntries(CSmartRewardEntry* rEntry, CSmartRewardsUpdateResult& result, uint16_t nCurrentRound, CAmount amount)
+{
+    rEntry->balance -= amount;
+    result.disqualifiedEntries++;
+    result.disqualifiedSmart += amount;
+}
+
+void CSmartRewards::QualifyEntries(CSmartRewardEntry* rEntry, CSmartRewardsUpdateResult& result, uint16_t nCurrentRound, const CTxOut& out)
+{
+    //If I do not set the balance then it will be always ZERO and never eligible to qualify as a good entry
+    rEntry->balance += out.nValue;
+    //if we are in the round 1.3 then the balance must be eligible for 1.3 rules
+    //If 1.2 then the balance must be eligible for 1.2 rules
+    if ((Is_1_3(nCurrentRound) && rEntry->IsEligible_1_3()) || (!Is_1_3(nCurrentRound) && rEntry->IsEligible_1_2())) {
+        //After it is eligible then I set how much of it is eligible
+        rEntry->balanceEligible = rEntry->balance;
+
+        result.qualifiedEntries++;
+        result.qualifiedSmart += out.nValue;
+    }
+}
+void CSmartRewards::UndoQualifyEntries(CSmartRewardEntry* rEntry, CSmartRewardsUpdateResult& result, uint16_t nCurrentRound, const CTxOut& out)
+{
+    //If I do not set the balance then it will be always ZERO and never eligible to qualify as a good entry
+    rEntry->balance -= out.nValue;
+    //if we are in the round 1.3 then the balance must be eligible for 1.3 rules
+    //If 1.2 then the balance must be eligible for 1.2 rules
+    if ((Is_1_3(nCurrentRound) && rEntry->IsEligible_1_3()) || (!Is_1_3(nCurrentRound) && rEntry->IsEligible_1_2())) {
+        //After it is eligible then I set how much of it is eligible
+        rEntry->balanceEligible = rEntry->balance;
+
+        result.qualifiedEntries--;
+        result.qualifiedSmart -= out.nValue;
     }
 }
 
@@ -631,15 +654,9 @@ void CSmartRewards::UndoInput(const CTransaction& tx, const CTxOut& in, uint16_t
         return;
     }
 
-
     if (!tx.IsVoteProof()) {
-        rEntry->balance += in.nValue;
-
-        result.disqualifiedEntries--;
-        result.disqualifiedSmart -= in.nValue;
-
-        rEntry->disqualifyingTx.SetNull();
-        rEntry->fDisqualifyingTx = false;
+        UndoDisqualifyEntries(rEntry, result, nCurrentRound, in.nValue);
+        rEntry->ResetDisqualifyingTx();
     }
 
     if (rEntry->balance < 0) {
@@ -662,28 +679,19 @@ void CSmartRewards::UndoOutput(const CTransaction& tx, const CTxOut& out, CSmart
         LogPrint("smartrewards-tx", "CSmartRewards::UndoOutput - Spend without previous receive - %s", tx.ToString());
         return;
     }
-    //We only add balance if is not the vote proof transaction. Vote proof transaction is just to activate the address
+    //We only undo add balance if is not the vote proof transaction. Vote proof transaction is just to activate the address
     if (tx.IsVoteProof()) {
-        rEntry->balance -= out.nValue;
-        result.qualifiedEntries--;
-        result.qualifiedSmart -= out.nValue;
-
-        rEntry->voteProof.SetNull();
-        rEntry->fVoteProven = false;
+        UndoQualifyEntries(rEntry, result, nCurrentRound, out);
+        rEntry->ResetIsVoteProven();
+        //If it is 1.3 and it is a NODE, then it should be disqualified
     } else if (Is_1_3(nCurrentRound) && tx.IsCoinBase() && IsNode(out, nHeight) && (rEntry->fSmartnodePaymentTx)) {
-        //Remove it from node disqualification
-        rEntry->smartnodePaymentTx.SetNull();
-        rEntry->fSmartnodePaymentTx = false;
-        //disqualify nodes
-        //IF NODE we need to give back the balance that was taken on Process output
-        rEntry->balance += out.nValue;
-        //Remove this entry from disqualified
-        result.disqualifiedEntries--;
-        result.disqualifiedSmart -= out.nValue;
+        //We must reset that it is a Node's payment
+        rEntry->ResetIsNode();
+        //We must undo disqualify any balance of nodes
+        UndoDisqualifyEntries(rEntry, result, nCurrentRound, out.nValue);
     } else {
-        rEntry->balance -= out.nValue;
-        result.qualifiedEntries--;
-        result.qualifiedSmart -= out.nValue;
+        //If not a vote proof transaction and not a node we must set this as a valid entry for rewards. The balance must be eligible and follow the rules.
+        UndoQualifyEntries(rEntry, result, nCurrentRound, out);
     }
 }
 
@@ -783,8 +791,8 @@ void CSmartRewards::ExportToCsv()
         auto str_isDisqualified = itDb->second->fDisqualifyingTx ? "yes" : "no";
         auto str_isNode = itDb->second->fSmartnodePaymentTx ? "yes" : "no";
         auto str_isActive = itDb->second->fVoteProven ? "yes" : "no";
-        auto str_isEligible_1_3 = (itDb->second->fVoteProven && !itDb->second->fSmartnodePaymentTx && !itDb->second->fDisqualifyingTx && itDb->second->balance > 0 && itDb->second->balance >= SMART_REWARDS_MIN_BALANCE_1_3) ? "yes" : "no";
-        auto str_isEligible_1_2 = (!itDb->second->fDisqualifyingTx && itDb->second->balance > 0 && itDb->second->balance >= SMART_REWARDS_MIN_BALANCE_1_2) ? "yes" : "no";
+        auto str_isEligible_1_3 = itDb->second->IsEligible_1_3() ? "yes" : "no";
+        auto str_isEligible_1_2 = itDb->second->IsEligible_1_2() ? "yes" : "no";
 
         myCsv << "" + key + "," + str_balance + "," + str_balanceEligible + "," + str_balanceAtStart + ", " + str_isDisqualified + ", " + str_isNode + ", " + str_isActive + "," + str_isEligible_1_2 + "," + str_isEligible_1_3 + "\n";
     }
