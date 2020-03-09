@@ -166,7 +166,7 @@ public:
     void ProcessOutput(const CTransaction& tx, const CTxOut& out, CSmartAddress* voteProofCheck, CAmount nVoteProofIn, uint16_t nCurrentRound, int nHeight, CSmartRewardsUpdateResult& result);
 
     void UndoInput(const CTransaction& tx, const CTxOut& in, uint16_t nCurrentRound, CSmartRewardsUpdateResult& result);
-    void UndoOutput(const CTransaction& tx, const CTxOut& out, CSmartAddress* voteProofCheck, CAmount& nVoteProofIn, uint16_t nCurrentRound, CSmartRewardsUpdateResult& result);
+    void UndoOutput(const CTransaction& tx, const CTxOut& out, CSmartAddress* voteProofCheck, CAmount& nVoteProofIn, uint16_t nCurrentRound, int nHeight, CSmartRewardsUpdateResult& result);
 
     bool ProcessTransaction(CBlockIndex* pIndex, const CTransaction& tx, int nCurrentRound);
     void UndoTransaction(CBlockIndex* pIndex, const CTransaction& tx, CCoinsViewCache& coins, const CChainParams& chainparams, CSmartRewardsUpdateResult& result);
@@ -202,6 +202,13 @@ public:
 
     void GetEligiblesEntries(CSmartRewardsUpdateResult& result, uint16_t currentRoundNumber);
 
+    CSmartRewardsRoundResult* GetEligiblesEntries2(const CSmartRewardsRoundResult* pResult);
+
+    void CalculateBalanceForAllEntries(CSmartRewardEntryMap& smartRewardEntriesFromDB, uint16_t currentRoundNumber);
+    
+    void ResetFlagsForAllEntries(CSmartRewardEntryMap& smartRewardEntriesFromDB);
+
+    bool IsNode(const CTxOut& out, int nHeight);
 };
 
 /** Global variable that points to the active rewards object (protected by cs_main) */
