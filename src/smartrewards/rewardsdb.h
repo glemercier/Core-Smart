@@ -190,6 +190,7 @@ public:
     int GetLastRoundBlock() const { return nLastRoundBlock; }
 
     bool Is_1_3() const { return number >= Params().GetConsensus().nRewardsFirst_1_3_Round; };
+    bool Is_1_2() const { return number < Params().GetConsensus().nRewardsFirst_1_3_Round; };
 
     std::string ToString() const;
 };

@@ -242,7 +242,7 @@ void CSmartRewards::EvaluateRound(CSmartRewardRound& nextRewardRound)
 
     int nFirst_1_3_Round = Params().GetConsensus().nRewardsFirst_1_3_Round;
 
-    CAmount nMinBalance = !nextRewardRound.Is_1_3() ? SMART_REWARDS_MIN_BALANCE_1_2 : SMART_REWARDS_MIN_BALANCE_1_3;
+    CAmount nMinBalance = nextRewardRound.Is_1_2() ? SMART_REWARDS_MIN_BALANCE_1_2 : SMART_REWARDS_MIN_BALANCE_1_3;
 
     CSmartRewardsRoundResult* pCurrentSmartRewardResult = new CSmartRewardsRoundResult();
     pCurrentSmartRewardResult->round = *currentRound;
@@ -267,14 +267,15 @@ void CSmartRewards::EvaluateRound(CSmartRewardRound& nextRewardRound)
 
     for (auto itDb = cache.GetEntries()->begin(); itDb != cache.GetEntries()->end(); ++itDb) {
         //Calculate the eligible balance
-        if (Is_1_3(currentRound->number)) {
+        if (currentRound->Is_1_3()) {
             itDb->second->balanceEligible = CalculateWeightedBalance(itDb->first, itDb->second, currentRound->number);
+            nReward = itDb->second->IsEligible_1_3() ? CAmount(itDb->second->balanceEligible * currentRound->percent) : 0;
         } else {
             itDb->second->balanceEligible = itDb->second->balance;
+            nReward = itDb->second->IsEligible_1_2() ? CAmount(itDb->second->balanceEligible * currentRound->percent) : 0;
         }
 
         //Calculate the reward
-        nReward = itDb->second->balanceEligible > 0 && !itDb->second->fDisqualifyingTx ? CAmount(itDb->second->balanceEligible * currentRound->percent) : 0;
         if (nReward > 0) {
             pCurrentSmartRewardResult->results.push_back(new CSmartRewardResultEntry(itDb->second, nReward));
             pCurrentSmartRewardResult->payouts.push_back(pCurrentSmartRewardResult->results.back());
@@ -284,7 +285,8 @@ void CSmartRewards::EvaluateRound(CSmartRewardRound& nextRewardRound)
     }
 
     if (pCurrentSmartRewardResult->payouts.size()) {
-        if (!Is_1_3(currentRound->number)) {
+
+        if (currentRound->Is_1_2()) {
             // Sort it to make sure the slices are the same network wide.
             std::sort(pCurrentSmartRewardResult->payouts.begin(), pCurrentSmartRewardResult->payouts.end(), ComparePaymentPrtList());
         } else {
@@ -316,7 +318,7 @@ void CSmartRewards::EvaluateRound(CSmartRewardRound& nextRewardRound)
     // Calculate the current cycle rewards to pay.
     int64_t nTime = GetTime();
     int64_t nStartHeight = nextRewardRound.startBlockHeight;
-    double dBlockReward = nextRewardRound.number < nFirst_1_3_Round ? 0.15 : 0.60;
+    double dBlockReward = nextRewardRound.Is_1_2() ? 0.15 : 0.60;
     nextRewardRound.rewards = 0;
 
     while (nStartHeight <= nextRewardRound.endBlockHeight)
