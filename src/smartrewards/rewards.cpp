@@ -240,10 +240,6 @@ void CSmartRewards::EvaluateRound(CSmartRewardRound& nextRewardRound)
 
     const CSmartRewardRound* currentRound = cache.GetCurrentRound();
 
-    int nFirst_1_3_Round = Params().GetConsensus().nRewardsFirst_1_3_Round;
-
-    CAmount nMinBalance = nextRewardRound.Is_1_2() ? SMART_REWARDS_MIN_BALANCE_1_2 : SMART_REWARDS_MIN_BALANCE_1_3;
-
     CSmartRewardsRoundResult* pCurrentSmartRewardResult = new CSmartRewardsRoundResult();
     pCurrentSmartRewardResult->round = *currentRound;
     pCurrentSmartRewardResult->round.UpdatePayoutParameter();
@@ -700,8 +696,6 @@ void CSmartRewards::UndoOutput(const CTransaction& tx, const CTxOut& out, CSmart
 void CSmartRewards::UndoTransaction(CBlockIndex* pIndex, const CTransaction& tx, CCoinsViewCache& coins, const CChainParams& chainparams, CSmartRewardsUpdateResult& result)
 {
     LogPrint("smartrewards-tx", "CSmartRewards::UndoTransaction - %s", tx.GetHash().ToString());
-
-    int nFirst_1_3_Round = chainparams.GetConsensus().nRewardsFirst_1_3_Round;
 
     int nCurrentRound;
 
