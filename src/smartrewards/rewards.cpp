@@ -662,8 +662,6 @@ void CSmartRewards::UndoOutput(const CTransaction& tx, const CTxOut& out, CSmart
         LogPrint("smartrewards-tx", "CSmartRewards::UndoOutput - Spend without previous receive - %s", tx.ToString());
         return;
     }
-
-
     //We only add balance if is not the vote proof transaction. Vote proof transaction is just to activate the address
     if (tx.IsVoteProof()) {
         rEntry->balance -= out.nValue;
@@ -672,27 +670,14 @@ void CSmartRewards::UndoOutput(const CTransaction& tx, const CTxOut& out, CSmart
 
         rEntry->voteProof.SetNull();
         rEntry->fVoteProven = false;
-    } else if (Is_1_3(nCurrentRound) && tx.IsCoinBase()) {
-        int nInterval = SmartNodePayments::PayoutInterval(nHeight);
-        int nPayoutsPerBlock = SmartNodePayments::PayoutsPerBlock(nHeight);
-        // Just to avoid potential zero divisions
-        nPayoutsPerBlock = std::max(1, nPayoutsPerBlock);
-        CAmount nNodeReward = SmartNodePayments::Payment(nHeight) / nPayoutsPerBlock;
-        // If we have an interval check if this is a node payout block
-        if (nInterval && !(nHeight % nInterval)) {
-            // If the amount matches and the entry is not yet marked as node do it
-            if (abs(out.nValue - nNodeReward) < 2) {
-                if (!rEntry->fSmartnodePaymentTx) {
-                    //
-                    rEntry->smartnodePaymentTx.SetNull();
-                    rEntry->fSmartnodePaymentTx = false;
-                    //disqualify nodes
-                    rEntry->balance += out.nValue;
-                    result.disqualifiedEntries--;
-                    result.disqualifiedSmart -= out.nValue;
-                }
-            }
-        }
+    } else if (Is_1_3(nCurrentRound) && tx.IsCoinBase() && IsNode(out, nHeight) && (rEntry->fSmartnodePaymentTx)) {
+        //
+        rEntry->smartnodePaymentTx.SetNull();
+        rEntry->fSmartnodePaymentTx = false;
+        //disqualify nodes
+        rEntry->balance += out.nValue;
+        result.disqualifiedEntries--;
+        result.disqualifiedSmart -= out.nValue;
     } else {
         rEntry->balance -= out.nValue;
         result.qualifiedEntries--;
