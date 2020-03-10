@@ -157,11 +157,7 @@ void CSmartRewards::UpdatePercentage()
     const CSmartRewardRound* currentRound = cache.GetCurrentRound();
 
     double nPercent = 0.0;
-    /*    if (Is_1_3(currentRound->number)) {
-        if (currentRound->eligibleSmart > 0)
-            nPercent = double(currentRound->rewards) / currentRound->eligibleSmart;
-    } else {
-*/
+
     if ((currentRound->eligibleSmart - currentRound->disqualifiedSmart) > 0) {
         nPercent = double(currentRound->rewards) / (currentRound->eligibleSmart - currentRound->disqualifiedSmart);
     }
@@ -193,6 +189,7 @@ bool CSmartRewards::Is_1_3(uint16_t currentRoundNumber)
 {
     return currentRoundNumber >= Params().GetConsensus().nRewardsFirst_1_3_Round;
 }
+
 CAmount CSmartRewards::CalculateWeightedBalance(CSmartAddress address, CSmartRewardEntry* smartRewardEntry, uint16_t currentRoundNumber)
 {
     int nFirst_1_3_Round = Params().GetConsensus().nRewardsFirst_1_3_Round;
@@ -230,21 +227,8 @@ void CSmartRewards::CalculateBalanceForAllEntries(CSmartRewardEntryMap& smartRew
     }
 }
 
-void CSmartRewards::EvaluateRound(CSmartRewardRound& nextRewardRound)
+void CSmartRewards::SaveToCacheEachRewardEntry()
 {
-    //Only called each 50 BLOCKS (TESTNET)
-
-    LOCK(cs_rewardscache);
-
-    UpdateRoundPayoutParameter();
-
-    const CSmartRewardRound* currentRound = cache.GetCurrentRound();
-
-    CSmartRewardsRoundResult* pCurrentSmartRewardResult = new CSmartRewardsRoundResult();
-    pCurrentSmartRewardResult->round = *currentRound;
-    pCurrentSmartRewardResult->round.UpdatePayoutParameter();
-
-    CAmount nReward;
     CSmartRewardEntryMap smartRewardEntriesFromDB;
     pdb->ReadRewardEntries(smartRewardEntriesFromDB);
 
@@ -257,10 +241,28 @@ void CSmartRewards::EvaluateRound(CSmartRewardRound& nextRewardRound)
             delete itDb->second;
         }
     }
+}
+
+void CSmartRewards::EvaluateRound(CSmartRewardRound& nextRewardRound)
+{
+    //Only called each 50 BLOCKS (TESTNET)
+
+    LOCK(cs_rewardscache);
+
+    SaveToCacheEachRewardEntry();
+
+    UpdateRoundPayoutParameter();
+
+    const CSmartRewardRound* currentRound = cache.GetCurrentRound();
+
+    CSmartRewardsRoundResult* pCurrentSmartRewardResult = new CSmartRewardsRoundResult();
+    pCurrentSmartRewardResult->round = *currentRound;
+    pCurrentSmartRewardResult->round.UpdatePayoutParameter();
 
     //Update the percentage of the reward
     UpdatePercentage();
 
+    CAmount nReward;
     for (auto itDb = cache.GetEntries()->begin(); itDb != cache.GetEntries()->end(); ++itDb) {
         //Calculate the eligible balance
         if (currentRound->Is_1_3()) {
@@ -281,7 +283,6 @@ void CSmartRewards::EvaluateRound(CSmartRewardRound& nextRewardRound)
     }
 
     if (pCurrentSmartRewardResult->payouts.size()) {
-
         if (currentRound->Is_1_2()) {
             // Sort it to make sure the slices are the same network wide.
             std::sort(pCurrentSmartRewardResult->payouts.begin(), pCurrentSmartRewardResult->payouts.end(), ComparePaymentPrtList());

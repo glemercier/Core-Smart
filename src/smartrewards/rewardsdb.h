@@ -5,11 +5,11 @@
 #ifndef REWARDSDB_H
 #define REWARDSDB_H
 
-#include "dbwrapper.h"
 #include "amount.h"
+#include "base58.h"
 #include "chain.h"
 #include "coins.h"
-#include "base58.h"
+#include "dbwrapper.h"
 #include "smarthive/hive.h"
 
 static constexpr uint8_t REWARDS_DB_VERSION = 0x0A;

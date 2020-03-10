@@ -188,7 +188,7 @@ public:
     bool GetRewardPayouts(const int16_t round, CSmartRewardResultEntryList& payouts);
     bool GetRewardPayouts(const int16_t round, CSmartRewardResultEntryPtrList& payouts);
 
-    void SaveToCacheEachRewardEntry(CSmartRewardEntryMap& smartRewardEntriesFromDB);
+    void SaveToCacheEachRewardEntry();
 
     bool Is_1_3(uint16_t currentRoundNumber);
 
