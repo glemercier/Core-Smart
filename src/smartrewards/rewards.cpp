@@ -774,7 +774,7 @@ void CSmartRewards::UndoTransaction(CBlockIndex* pIndex, const CTransaction& tx,
 
 void CSmartRewards::ExportToCsv()
 {
-    CSmartRewardEntryMap smartRewardEntriesFromDB;
+    /*CSmartRewardEntryMap smartRewardEntriesFromDB;
     pdb->ReadRewardEntries(smartRewardEntriesFromDB);
 
     std::ofstream myCsv("smartRewardEntriesFromDB.csv");
@@ -793,12 +793,12 @@ void CSmartRewards::ExportToCsv()
 
         myCsv << "" + key + "," + str_balance + "," + str_balanceEligible + "," + str_balanceAtStart + ", " + str_isDisqualified + ", " + str_isNode + ", " + str_isActive + "," + str_isEligible_1_2 + "," + str_isEligible_1_3 + "\n";
     }
-    myCsv.close();
+    myCsv.close();*/
 }
 
 void CSmartRewards::GetEligiblesEntries(CSmartRewardsUpdateResult& result, uint16_t currentRoundNumber)
 {
-    CSmartRewardEntryMap smartRewardEntriesFromDB;
+    /*CSmartRewardEntryMap smartRewardEntriesFromDB;
     pdb->ReadRewardEntries(smartRewardEntriesFromDB);
 
     result.qualifiedEntries = 0;
@@ -819,13 +819,13 @@ void CSmartRewards::GetEligiblesEntries(CSmartRewardsUpdateResult& result, uint1
                 result.qualifiedSmart += itDb->second->balance;
             }
         }
-    }
+    }*/
 }
 
 
 CSmartRewardsRoundResult* CSmartRewards::GetEligiblesEntries2(const CSmartRewardsRoundResult* pResult)
 {
-    CSmartRewardEntryMap smartRewardEntriesFromDB;
+    /*CSmartRewardEntryMap smartRewardEntriesFromDB;
     pdb->ReadRewardEntries(smartRewardEntriesFromDB);
 
     auto roundResult = new CSmartRewardsRoundResult();
@@ -858,7 +858,7 @@ CSmartRewardsRoundResult* CSmartRewards::GetEligiblesEntries2(const CSmartReward
             }
         }
     }
-    return roundResult;
+    return roundResult;*/
 }
 
 bool CSmartRewards::CommitBlock(CBlockIndex* pIndex, CSmartRewardsUpdateResult& result)
@@ -888,7 +888,7 @@ bool CSmartRewards::CommitBlock(CBlockIndex* pIndex, CSmartRewardsUpdateResult& 
 
     cache.ApplyRoundUpdateResult(result);
 
-    ExportToCsv();
+    //ExportToCsv();
 
     // For the first round we have special parameter..
     if (!round->number) {

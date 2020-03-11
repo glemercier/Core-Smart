@@ -8,9 +8,8 @@
             "name": "SmartCashd - MainNET",
             "type": "lldb",
             "request": "launch",
-            "program": "/Users/enricrypto/crypto/Core-Smart/src/smartcashd",
+            "program": "/home/enrique/core_enrique/src/smartcashd",
             "args": [
-                "-datadir=/Users/enricrypto/smartcash_test",
                 "-server"
             ],
         },
@@ -18,10 +17,10 @@
             "name": "SmartCashd - TestNET",
             "type": "lldb",
             "request": "launch",
-            "program": "/Users/enricrypto/crypto/Core-Smart/src/smartcashd",
+            "program": "/home/enrique/core_enrique/src/smartcashd",
             "args": [
                 "-testnet",
-                "-datadir=/Users/enricrypto/smartcash_test",
+                "-datadir=/home/enrique/smartcash_test",
                 "-server",
                 "-printtoconsole"
             ],
