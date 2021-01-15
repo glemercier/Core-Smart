@@ -160,9 +160,6 @@ bool CSmartRewardsDB::SyncCached(const CSmartRewardsCache& cache)
                 batch.Erase(make_pair(DB_REWARD_ENTRY, entry->first));
             } else {
                 CSmartRewardEntry rewardEntry = (*it)->entry;
-
-                std::cout << rewardEntry.ToString() << std::endl;
-
                 batch.Write(make_pair(DB_REWARD_ENTRY, rewardEntry.id), rewardEntry);
                 batch.Erase(make_pair(DB_ROUND_SNAPSHOT, make_pair(cache.GetUndoResult()->round.number, rewardEntry.id)));
                 tmpResults.erase(it);
