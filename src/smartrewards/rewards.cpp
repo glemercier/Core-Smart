@@ -32,11 +32,17 @@ size_t nCacheRewardEntries;
 boost::posix_time::ptime epoch(boost::gregorian::date(1970, 1, 1));
 
 struct CompareRewardScore {
-    bool operator()(const std::pair<arith_uint256, CSmartRewardResultEntry*>& s1,
-        const std::pair<arith_uint256, CSmartRewardResultEntry*>& s2) const
+    CompareRewardScore(const uint256& blockHash) : blockHash(blockHash) {}
+
+    bool operator()(const CSmartRewardResultEntry* a, const CSmartRewardResultEntry* b) const
     {
-        return (s1.first != s2.first) ? (s1.first < s2.first) : (s1.second->entry.balance < s2.second->entry.balance);
+        arith_uint256 s1 = a->CalculateScore(blockHash);
+        arith_uint256 s2 = b->CalculateScore(blockHash);
+        return (s1 != s2) ? (s1 < s2) : (a->entry.balance < b->entry.balance);
     }
+
+private:
+    uint256 blockHash;
 };
 
 struct ComparePaymentPrtList {
@@ -186,7 +192,9 @@ void CSmartRewards::EvaluateRound(CSmartRewardRound &next)
         // Calculate rewards for next cycle
         next.rewards = 0;
         int64_t nStartHeight = next.startBlockHeight;
-        while( nStartHeight <= next.endBlockHeight) next.rewards += GetBlockValue(nStartHeight++, 0, nTime) * dBlockReward;
+        while( nStartHeight <= next.endBlockHeight) {
+            next.rewards += GetBlockValue(nStartHeight++, 0, nTime) * dBlockReward;
+        }
 
         // Compute payouts for current ending round
         auto entry = cache.GetEntries()->begin();
@@ -215,23 +223,9 @@ void CSmartRewards::EvaluateRound(CSmartRewardRound &next)
                 throw std::runtime_error(strprintf("CSmartRewards::EvaluateRound -- ERROR: GetBlockHash() failed at nBlockHeight %d\n", round->startBlockHeight));
             }
 
-            std::vector<std::pair<arith_uint256, CSmartRewardResultEntry*>> vecScores;
             // Since we use payouts stretched out over a week better to have some "random" sort here
             // based on a score calculated with the round start's blockhash.
-            CSmartRewardResultEntryPtrList::iterator it = pResult->payouts.begin();
-
-            while( it != pResult->payouts.end() ){
-                arith_uint256 nScore = (*it)->CalculateScore(blockHash);
-                vecScores.push_back(std::make_pair(nScore,*it));
-                ++it;
-            }
-
-            std::sort(vecScores.begin(), vecScores.end(), CompareRewardScore());
-
-            pResult->payouts.clear();
-
-            for(auto s : vecScores)
-                pResult->payouts.push_back(s.second);
+            std::sort(pResult->payouts.begin(), pResult->payouts.end(), CompareRewardScore(blockHash));
         }
 
         // Look for entries eligible to the next round
@@ -425,6 +419,9 @@ bool CSmartRewards::GetRewardRoundResults(const int16_t round, CSmartRewardResul
 
 const CSmartRewardsRoundResult* CSmartRewards::GetLastRoundResult()
 {
+    // Make sure the results in cache were sorted after reading them from db
+    cache.SortResult();
+
     return cache.GetLastRoundResult();
 }
 
@@ -1275,6 +1272,13 @@ void CSmartRewardsCache::ClearResult()
     }
 }
 
+void CSmartRewardsCache::SortResult()
+{
+    if (result) {
+        result->Sort();
+    }
+}
+
 void CSmartRewardsCache::SetCurrentBlock(const CSmartRewardBlock& currentBlock)
 {
     AssertLockHeld(cs_rewardscache);
@@ -1420,3 +1424,29 @@ void CSmartRewardsRoundResult::Clear()
     results.clear();
     payouts.clear();
 }
+
+void CSmartRewardsRoundResult::Sort()
+{
+    if (fSorted) {
+        return;
+    }
+
+    // Only order payouts starting from 1.3 onwards
+    if (round.number < Params().GetConsensus().nRewardsFirst_1_3_Round) {
+        fSorted = true;
+        return;
+    }
+
+    uint256 blockHash;
+    if (!GetBlockHash(blockHash, round.startBlockHeight)) {
+        throw std::runtime_error(strprintf(
+              "CSmartRewards::EvaluateRound -- ERROR: GetBlockHash() failed at nBlockHeight %d\n",
+              round.startBlockHeight));
+    }
+
+    // Sort by score or balance to make sure payouts match the order in which they were filled in blocks
+    std::sort(payouts.begin(), payouts.end(), CompareRewardScore(blockHash));
+
+    fSorted = true;
+}
+

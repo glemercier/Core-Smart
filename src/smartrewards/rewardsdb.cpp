@@ -496,7 +496,7 @@ string CSmartRewardResultEntry::ToString() const
     return s.str();
 }
 
-arith_uint256 CSmartRewardResultEntry::CalculateScore(const uint256& blockHash)
+arith_uint256 CSmartRewardResultEntry::CalculateScore(const uint256& blockHash) const
 {
     // Deterministically calculate a "score" for a CSmartRewardResultEntry based on any given (block)hash
     // Used to sort the payout list for 1.3 smartreward payouts

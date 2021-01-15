@@ -321,7 +321,7 @@ public:
     std::string GetAddress() const;
     std::string ToString() const;
 
-    arith_uint256 CalculateScore(const uint256& blockHash);
+    arith_uint256 CalculateScore(const uint256& blockHash) const;
 };
 
 class CTermRewardEntry

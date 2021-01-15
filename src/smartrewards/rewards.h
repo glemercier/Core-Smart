@@ -70,9 +70,11 @@ struct CSmartRewardsRoundResult {
     CSmartRewardResultEntryPtrList results;
     CSmartRewardResultEntryPtrList payouts;
     bool fSynced;
-    CSmartRewardsRoundResult() { fSynced = false; }
+    bool fSorted;
 
+    CSmartRewardsRoundResult() : fSynced(false), fSorted(false) {}
     void Clear();
+    void Sort();
 };
 
 class CSmartRewardsCache
@@ -101,6 +103,7 @@ public:
     bool NeedsSync();
     void Clear();
     void ClearResult();
+    void SortResult();
 
     void SetCurrentBlock(const CSmartRewardBlock& currentBlock);
     void SetCurrentRound(const CSmartRewardRound& currentRound);
